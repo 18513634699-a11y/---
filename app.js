@@ -1,6 +1,6 @@
 const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const KEY='pathology-progress-v1';
-let chapters=[], all=[], state={mode:'home',selected:[],filter:'all',random:false,index:0,exam:null,error:'',reviewedId:null};
+let chapters=[], all=[], state={mode:'home',selected:[],filter:'all',random:false,index:0,exam:null,error:'',reviewedId:null,currentQuestionId:null};
 let records=read();
 function read(){try{let d=JSON.parse(localStorage.getItem(KEY));if(d&&d.version===1)return {...d,favorites:d.favorites||{}}}catch{}return {version:1,study:{},practice:{},examDone:{},exams:[],favorites:{}}}
 function save(){localStorage.setItem(KEY,JSON.stringify(records))}
@@ -22,7 +22,18 @@ function selectAll(){state.selected=chapters.map(c=>c.id);state.index=0;state.re
 function startSelected(){if(!state.selected.length)return;state.filter='all';state.index=0;state.reviewedId=null;render()}
 function filter(f){state.filter=f;state.index=0;state.reviewedId=null;render()}
 function toggleRandom(){state.random=!state.random;state.seed=Math.random()*2**30|0;state.index=0;state.reviewedId=null;render()}
-function move(n){let wasReview=!!state.reviewedId;state.reviewedId=null;state.index=Math.max(0,Math.min(pool().length-1,state.index+n-(wasReview&&n>0?1:0)));render()}
+function move(n){
+  const a=pool();
+  if(state.reviewedId){
+    if(n<0&&state.index===0)return;
+    state.reviewedId=null;
+    state.index=Math.max(0,Math.min(a.length-1,state.index+(n<0?-1:0)));
+  }else{
+    const current=a.findIndex(q=>q.id===state.currentQuestionId);
+    state.index=Math.max(0,Math.min(a.length-1,(current<0?state.index:current)+n));
+  }
+  render();
+}
 function jump(n){state.reviewedId=null;state.index=Number(n);render()}
 function toggleFavorite(id){if(records.favorites[id])delete records.favorites[id];else records.favorites[id]=Date.now();save();render()}
 function sidebar(){return `<aside class="panel side"><h3>选择章节</h3>${chapterList().map(c=>`<label class="chaptercheck"><input type="checkbox" ${state.selected.includes(c.id)?'checked':''} onchange="toggleChapter('${c.id}')">${c.id==='0'?'★ 第 0 章 · ':''}${esc(c.name)}${c.id==='0'?`（${c.questions.length}）`:''}</label>`).join('')}<button class="ghost" style="margin-top:16px;width:100%" onclick="selectAll()">选择全部原章节</button>${state.mode!=='exam'?`<button class="primary" style="margin-top:10px;width:100%" onclick="startSelected()" ${state.selected.length?'':'disabled'}>${state.mode==='study'?'开始学习':'开始刷题'}</button>`:''}</aside>`}
@@ -31,6 +42,7 @@ function studyPractice(){
   const title=state.mode==='study'?'学习模式':'刷题模式';
   const a=pool();
   let q=state.reviewedId?all.find(x=>x.id===state.reviewedId):a[Math.min(state.index,a.length-1)];
+  state.currentQuestionId=q?.id||null;
   if(q&&state.mode==='study'&&!records.study[q.id]){
     records.study[q.id]=Date.now();
     if(state.filter==='undone')state.reviewedId=q.id;
@@ -55,7 +67,7 @@ function results(){let e=state.exam,answered=e.questions.filter(q=>e.answers[q.i
 function exportData(){let b=new Blob([JSON.stringify(records,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='病理学刷题记录.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 async function importData(el){let f=el.files[0];if(!f)return;try{let d=JSON.parse(await f.text());if(d.version!==1||!d.study||!d.practice||!d.examDone||!Array.isArray(d.exams))throw Error('格式不正确');if(!confirm('导入将覆盖当前浏览器的学习记录，确定继续吗？'))return;records={...d,favorites:d.favorites||{}};save();render()}catch(e){alert('导入失败：'+e.message)}}
 function render(){if(state.mode==='home')home();else if(state.mode==='exam')state.exam?exam():examSetup();else studyPractice()}
-fetch('questions.json?v=2').then(r=>r.json()).then(data=>{chapters=data;all=data.flatMap(c=>c.questions.map(q=>({...q,chapterId:c.id,chapterName:c.name})));let changed=false;for(const q of all){const done=records.practice[q.id];if(done&&done.correct!==(done.answer===q.answer)){done.correct=done.answer===q.answer;changed=true}}if(changed)save();render()}).catch(()=>{$('#app').textContent='题库加载失败，请刷新页面重试。'});
+fetch('questions.json?v=3').then(r=>r.json()).then(data=>{chapters=data;all=data.flatMap(c=>c.questions.map(q=>({...q,chapterId:c.id,chapterName:c.name})));let changed=false;for(const q of all){const done=records.practice[q.id];if(done&&done.correct!==(done.answer===q.answer)){done.correct=done.answer===q.answer;changed=true}}if(changed)save();render()}).catch(()=>{$('#app').textContent='题库加载失败，请刷新页面重试。'});
 Object.assign(window,{goHome,choose,enter,toggleChapter,selectAll,startSelected,filter,toggleRandom,move,jump,toggleFavorite,answerQuestion,startExam,examMove,examJump,submitExam,exportData,importData});
 document.addEventListener('keydown',event=>{
   if(!['ArrowLeft','ArrowRight'].includes(event.key)||event.altKey||event.ctrlKey||event.metaKey)return;
