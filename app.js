@@ -35,9 +35,9 @@ function previousCompleted(){
   for(let i=position-1;i>=0;i--)if(completed(scoped[i]))return scoped[i];
   return null;
 }
-function canGoPrev(){return state.filter==='undone'?!!previousCompleted():state.index>0}
+function canGoPrev(){return state.filter==='undone'||(state.random&&state.filter==='done')?!!previousCompleted():state.index>0}
 function move(n){
-  if(n<0&&state.filter==='undone'){
+  if(n<0&&(state.filter==='undone'||(state.random&&state.filter==='done'))){
     const previous=previousCompleted();
     if(!previous)return;
     state.filter='done';state.reviewedId=null;
@@ -74,8 +74,7 @@ function studyPractice(){
   state.currentQuestionId=q?.id||null;
   if(q&&state.mode==='study'){
     let changed=false;
-    if(!records.study[q.id]){records.study[q.id]=Date.now();if(state.filter==='undone')state.reviewedId=q.id;changed=true}
-    if(records.studyHistory.at(-1)!==q.id){records.studyHistory.push(q.id);changed=true}
+    if(!records.study[q.id]){records.study[q.id]=Date.now();records.studyHistory.push(q.id);if(state.filter==='undone')state.reviewedId=q.id;changed=true}
     if(changed)save();
   }
   const scoped=all.filter(inScope), selectedCount=scoped.length;
