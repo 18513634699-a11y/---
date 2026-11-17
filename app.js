@@ -57,6 +57,13 @@ async function importData(el){let f=el.files[0];if(!f)return;try{let d=JSON.pars
 function render(){if(state.mode==='home')home();else if(state.mode==='exam')state.exam?exam():examSetup();else studyPractice()}
 fetch('questions.json?v=2').then(r=>r.json()).then(data=>{chapters=data;all=data.flatMap(c=>c.questions.map(q=>({...q,chapterId:c.id,chapterName:c.name})));let changed=false;for(const q of all){const done=records.practice[q.id];if(done&&done.correct!==(done.answer===q.answer)){done.correct=done.answer===q.answer;changed=true}}if(changed)save();render()}).catch(()=>{$('#app').textContent='题库加载失败，请刷新页面重试。'});
 Object.assign(window,{goHome,choose,enter,toggleChapter,selectAll,startSelected,filter,toggleRandom,move,jump,toggleFavorite,answerQuestion,startExam,examMove,examJump,submitExam,exportData,importData});
+document.addEventListener('keydown',event=>{
+  if(!['ArrowLeft','ArrowRight'].includes(event.key)||event.altKey||event.ctrlKey||event.metaKey)return;
+  if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)||document.activeElement?.isContentEditable)return;
+  const step=event.key==='ArrowRight'?1:-1;
+  if((state.mode==='study'||state.mode==='practice')&&state.selected.length&&pool().length){event.preventDefault();move(step)}
+  else if(state.mode==='exam'&&state.exam&&!state.exam.submitted){event.preventDefault();examMove(step)}
+});
 
 
 
