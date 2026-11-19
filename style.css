@@ -14,4 +14,4 @@
 .chapterline .reset:hover{color:#a53d31;border-color:#e6a49a}
 .casechapter{margin-left:14px;background:#f6fafb;border-left:2px solid #a7d5d0;padding-left:7px}.casechapter .chaptercheck{font-size:12px;color:#087a72}
 .figures{display:flex;flex-wrap:wrap;gap:12px;margin:0 0 20px}.figures img{max-width:100%;max-height:380px;object-fit:contain;border:1px solid #d8e3e9;border-radius:10px;background:white}
-
+.term-definition{white-space:pre-line;line-height:1.9;font-size:18px;color:#17344d;background:#f1f8f6;border-left:4px solid #069f95;border-radius:8px;padding:20px 24px;margin:18px 0 24px}
