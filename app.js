@@ -59,10 +59,12 @@ function move(n){
 function jump(n){state.reviewedId=null;state.index=Number(n);render()}
 function toggleFavorite(id){if(records.favorites[id])delete records.favorites[id];else records.favorites[id]=Date.now();save();render()}
 function resetChapter(id){
-  const chapter=[...chapters,...caseChapters,...englishChapters,...supplementChapters].find(c=>c.id===id);
+  const chapter=id==='term-favorites'?chapterList().find(c=>c.id===id):[...chapters,...caseChapters,...englishChapters,...supplementChapters,...termChapters].find(c=>c.id===id);
   if(!chapter||!confirm(`重新刷“${chapter.name}”？该章本轮已做记录和当前错题会清空，累计做错次数会保留。`))return;
-  for(const q of chapter.questions)delete records.practice[q.id];
-  records.practiceHistory=records.practiceHistory.filter(qid=>!qid.startsWith(id+'-'));
+  const ids=new Set(chapter.questions.map(q=>q.id));
+  for(const qid of ids)delete records.practice[qid];
+  records.practiceHistory=records.practiceHistory.filter(qid=>!ids.has(qid));
+  for(const qid of ids)delete state.hiddenTerms[qid];
   state.filter='all';state.index=0;state.reviewedId=null;
   save();render();
 }
